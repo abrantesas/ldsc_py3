@@ -1,0 +1,11 @@
+name: py3
+channels:
+- bioconda
+dependencies:
+- python=3.11
+- bitarray=2.5
+- pip
+- pip:
+  - scipy==1.11
+  - pandas==2.0
+  - numpy==1.24
