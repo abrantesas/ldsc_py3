@@ -19,6 +19,7 @@ from itertools import product
 import time, sys, traceback, argparse
 from functools import reduce
 import gzip
+import logging
 
 try:
     x = pd.DataFrame({'A': [1, 2, 3]})
@@ -43,6 +44,7 @@ pd.set_option('display.precision', 4)
 pd.set_option('max_colwidth',1000)
 np.set_printoptions(linewidth=1000)
 np.set_printoptions(precision=4)
+
 
 
 def sec_to_str(t):
@@ -86,20 +88,20 @@ def _remove_dtype(x):
 #         #print(msg, file=self.log_fh)
 #         print(msg)
 
-class Logger3(object):
-    def __init__(self, fh):
-        self.file_handle = fh
+# class Logger3(object):
+#     def __init__(self, fh):
+#         self.file_handle = fh
 
-    def __enter__(self):
-        self.log_fh = open(self.file_handle, 'a', encoding='utf-8')  # Open the file
-        return self
+#     def __enter__(self):
+#         self.log_fh = open(self.file_handle, 'a', encoding='utf-8')  # Open the file
+#         return self
 
-    def log(self, msg):
-        print(msg, file=self.log_fh)
-        print(msg)
+#     def log(self, msg):
+#         print(msg, file=self.log_fh)
+#         print(msg)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.log_fh.close()  # Close the file when exiting the 'with' block
+#     def __exit__(self, exc_type, exc_value, traceback):
+#         self.log_fh.close()  # Close the file when exiting the 'with' block
         
 
 def __filter__(fname, noun, verb, merge_obj):
@@ -135,7 +137,7 @@ def annot_sort_key(s):
 
     return s
 
-def ldscore(args, log):
+def ldscore(args):
     '''
     Wrapper function for estimating l1, l1^2, l2 and l4 (+ optionally standard errors) from
     reference panel genotypes.
@@ -153,15 +155,13 @@ def ldscore(args, log):
     # read bim/snp
     array_snps = snp_obj(snp_file)
     m = len(array_snps.IDList)
-    with Logger3(args.out+'.log') as logger:
-        logger.log('Read list of {m} SNPs from {f}'.format(m=m, f=snp_file))
+    logger.info('Read list of {m} SNPs from {f}'.format(m=m, f=snp_file))
     if args.annot is not None:  # read --annot
         try:
             if args.thin_annot: # annot file has only annotations
                 annot = ps.ThinAnnotFile(args.annot)
                 n_annot, ma = len(annot.df.columns), len(annot.df)
-                with Logger3(args.out+'.log') as logger:
-                    logger.log("Read {A} annotations for {M} SNPs from {f}".format(f=args.annot,
+                logger.info("Read {A} annotations for {M} SNPs from {f}".format(f=args.annot,
                     A=n_annot, M=ma))
                 annot_matrix = annot.df.values
                 annot_colnames = annot.df.columns
@@ -169,8 +169,7 @@ def ldscore(args, log):
             else:
                 annot = ps.AnnotFile(args.annot)
                 n_annot, ma = len(annot.df.columns) - 4, len(annot.df)
-                with Logger3(args.out+'.log') as logger:
-                    logger.log("Read {A} annotations for {M} SNPs from {f}".format(f=args.annot,
+                logger.info("Read {A} annotations for {M} SNPs from {f}".format(f=args.annot,
                     A=n_annot, M=ma))
                 annot_matrix = np.array(annot.df.iloc[:,4:])
                 annot_colnames = annot.df.columns[4:]
@@ -179,8 +178,7 @@ def ldscore(args, log):
                     raise ValueError('The .annot file must contain the same SNPs in the same'+\
                         ' order as the .bim file.')
         except Exception:
-            with Logger3(args.out+'.log') as logger:
-                logger.log('Error parsing .annot file')
+            logger.error('Error parsing .annot file')
             raise
 
     elif args.extract is not None:  # --extract
@@ -209,8 +207,7 @@ def ldscore(args, log):
         else:
             cts_colnames = ['ANNOT'+str(i) for i in range(len(cts_fnames))]
 
-        with Logger3(args.out+'.log') as logger:
-            logger.log('Reading numbers with which to bin SNPs from {F}'.format(F=args.cts_bin))
+        logger.info('Reading numbers with which to bin SNPs from {F}'.format(F=args.cts_bin))
 
         cts_levs = []
         full_labs = []
@@ -283,8 +280,7 @@ def ldscore(args, log):
     # read fam
     array_indivs = ind_obj(ind_file)
     n = len(array_indivs.IDList)
-    with Logger3(args.out+'.log') as logger:
-        logger.log('Read list of {n} individuals from {f}'.format(n=n, f=ind_file))
+    logger.info('Read list of {n} individuals from {f}'.format(n=n, f=ind_file))
     # read keep_indivs
     if args.keep:
         keep_indivs = __filter__(args.keep, 'individuals', 'include', array_indivs)
@@ -292,8 +288,7 @@ def ldscore(args, log):
         keep_indivs = None
 
     # read genotype array
-    with Logger3(args.out+'.log') as logger:
-        logger.log('Reading genotypes from {fname}'.format(fname=array_file))
+    logger.info('Reading genotypes from {fname}'.format(fname=array_file))
     geno_array = array_obj(array_file, n, array_snps, keep_snps=keep_snps,
         keep_indivs=keep_indivs, mafMin=args.maf)
 
@@ -325,12 +320,10 @@ def ldscore(args, log):
 
     scale_suffix = ''
     if args.pq_exp is not None:
-        with Logger3(args.out+'.log') as logger:
-            logger.log('Computing LD with pq ^ {S}.'.format(S=args.pq_exp))
+        logger.info('Computing LD with pq ^ {S}.'.format(S=args.pq_exp))
         msg = 'Note that LD Scores with pq raised to a nonzero power are'
         msg += 'not directly comparable to normal LD Scores.'
-        with Logger3(args.out+'.log') as logger:
-            logger.log(msg)
+        logger.info(msg)
         scale_suffix = '_S{S}'.format(S=args.pq_exp)
         pq = np.matrix(geno_array.maf*(1-geno_array.maf)).reshape((geno_array.m, 1))
         pq = np.power(pq, args.pq_exp)
@@ -340,8 +333,7 @@ def ldscore(args, log):
         else:
             annot_matrix = pq
 
-    with Logger3(args.out+'.log') as logger:
-        logger.log("Estimating LD Score.")
+    logger.info("Estimating LD Score.")
     lN = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=annot_matrix)
     col_prefix = "L2"; file_suffix = "l2"
 
@@ -364,8 +356,7 @@ def ldscore(args, log):
             print_snps = pd.read_csv(args.print_snps, header=None)
         if len(print_snps.columns) > 1:
             raise ValueError('--print-snps must refer to a file with a one column of SNP IDs.')
-        with Logger3(args.out+'.log') as logger:
-            logger.log('Reading list of {N} SNPs for which to print LD Scores from {F}'.format(\
+        logger.info('Reading list of {N} SNPs for which to print LD Scores from {F}'.format(\
                         F=args.print_snps, N=len(print_snps)))
 
         print_snps.columns=['SNP']
@@ -374,12 +365,10 @@ def ldscore(args, log):
             raise ValueError('After merging with --print-snps, no SNPs remain.')
         else:
             msg = 'After merging with --print-snps, LD Scores for {N} SNPs will be printed.'
-            with Logger3(args.out+'.log') as logger:
-                logger.log(msg.format(N=len(df)))
+            logger.info(msg.format(N=len(df)))
 
     l2_suffix = '.gz'
-    with Logger3(args.out+'.log') as logger:
-        logger.log("Writing LD Scores for {N} SNPs to {f}.gz".format(f=out_fname, N=len(df)))
+    logger.info("Writing LD Scores for {N} SNPs to {f}.gz".format(f=out_fname, N=len(df)))
     df.drop(['CM','MAF'], axis=1).to_csv(out_fname, sep="\t", header=True, index=False,
         float_format='%.3f')
     #following change works with gzip not in path or not installed
@@ -422,61 +411,46 @@ def ldscore(args, log):
         annot_df = pd.DataFrame(np.c_[geno_array.df, annot_matrix])
         annot_df.columns = new_colnames
         del annot_df['MAF']
-        with Logger3(args.out+'.log') as logger:
-            logger.log("Writing annot matrix produced by --cts-bin to {F}".format(F=out_fname+'.gz'))
+        logger.info("Writing annot matrix produced by --cts-bin to {F}".format(F=out_fname+'.gz'))
         annot_df.to_csv(out_fname_annot, sep="\t", header=True, index=False)
         call(['gzip', '-f', out_fname_annot])
 
     # print LD Score summary
     pd.set_option('display.max_rows', 200)
-    with Logger3(args.out+'.log') as logger:
-        logger.log('\nSummary of LD Scores in {F}'.format(F=out_fname+l2_suffix))
+    logger.info('\nSummary of LD Scores in {F}'.format(F=out_fname+l2_suffix))
     #change to iloc
     t = df.iloc[:,4:].describe()
-    with Logger3(args.out+'.log') as logger:
-        logger.log( t.iloc[1:,:] )
+    logger.info( t.iloc[1:,:] )
 
     np.seterr(divide='ignore', invalid='ignore')  # print NaN instead of weird errors
     # print correlation matrix including all LD Scores and sample MAF
-    with Logger3(args.out+'.log') as logger:
-        logger.log('')
-    with Logger3(args.out+'.log') as logger:
-        logger.log('MAF/LD Score Correlation Matrix')
-    with Logger3(args.out+'.log') as logger:
-        logger.log( df.iloc[:,4:].corr() )
+    logger.info('')
+    logger.info('MAF/LD Score Correlation Matrix')
+    logger.info( df.iloc[:,4:].corr() )
 
     # print condition number
     if n_annot > 1: # condition number of a column vector w/ nonzero var is trivially one
-        with Logger3(args.out+'.log') as logger:
-            logger.log('\nLD Score Matrix Condition Number')
+        logger.info('\nLD Score Matrix Condition Number')
         cond_num = np.linalg.cond(df.iloc[:,5:])
-        with Logger3(args.out+'.log') as logger:
-            logger.log( reg.remove_brackets(str(np.matrix(cond_num))) )
+        logger.info( reg.remove_brackets(str(np.matrix(cond_num))) )
         if cond_num > 10000:
-            with Logger3(args.out+'.log') as logger:
-                logger.log('WARNING: ill-conditioned LD Score Matrix!')
+            logger.warning('WARNING: ill-conditioned LD Score Matrix!')
 
     # summarize annot matrix if there is one
     if annot_matrix is not None:
         # covariance matrix
         x = pd.DataFrame(annot_matrix, columns=annot_colnames)
-        with Logger3(args.out+'.log') as logger:
-            logger.log('\nAnnotation Correlation Matrix')
-        with Logger3(args.out+'.log') as logger:
-            logger.log( x.corr() )
+        logger.info('\nAnnotation Correlation Matrix')
+        logger.info( x.corr() )
 
         # column sums
-        with Logger3(args.out+'.log') as logger:
-            logger.log('\nAnnotation Matrix Column Sums')
-        with Logger3(args.out+'.log') as logger:
-            logger.log(_remove_dtype(x.sum(axis=0)))
+        logger.info('\nAnnotation Matrix Column Sums')
+        logger.info(_remove_dtype(x.sum(axis=0)))
 
         # row sums
-        with Logger3(args.out+'.log') as logger:
-            logger.log('\nSummary of Annotation Matrix Row Sums')
+        logger.info('\nSummary of Annotation Matrix Row Sums')
         row_sums = x.sum(axis=1).describe()
-        with Logger3(args.out+'.log') as logger:
-            logger.log(_remove_dtype(row_sums))
+        logger.info(_remove_dtype(row_sums))
 
     np.seterr(divide='raise', invalid='raise')
 
@@ -642,11 +616,28 @@ parser.add_argument('--pop-prev',default=None,
 
 if __name__ == '__main__':
 
+
     args = parser.parse_args()
     if args.out is None:
         raise ValueError('--out is required.')
+    #right now logger doesn't go to out folder
+    #should logger be in __main__ or at top of script?    
+    #log = Logger(args.out+'.log')
+    logger = logging.getLogger('LDSC')
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(args.out + 'LDSC.log')
+    fh.setLevel(logging.DEBUG)
 
-    log = Logger(args.out+'.log')
+    ch = logging.StreamHandler()
+
+    ##edit levels later and add an error file output
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    
     try:
         defaults = vars(parser.parse_args(''))
         opts = vars(args)
@@ -657,10 +648,8 @@ if __name__ == '__main__':
         options = ['--'+x.replace('_','-')+' '+str(opts[x])+' \\' for x in non_defaults]
         header += '\n'.join(options).replace('True','').replace('False','')
         header = header[0:-1]+'\n'
-        with Logger3(args.out+'.log') as logger:
-            logger.log(header)
-        with Logger3(args.out+'.log') as logger:
-            logger.log('Beginning analysis at {T}'.format(T=time.ctime()))
+        logger.info(header)
+        logger.info('Beginning analysis at {T}'.format(T=time.ctime()))
         start_time = time.time()
         if args.n_blocks <= 1:
             raise ValueError('--n-blocks must be an integer > 1.')
@@ -681,7 +670,7 @@ if __name__ == '__main__':
                 args.pq_exp = 1
 
 
-            ldscore(args, log)
+            ldscore(args)
         # summary statistics
         elif (args.h2 or args.rg or args.h2_cts) and (args.ref_ld or args.ref_ld_chr) and (args.w_ld or args.w_ld_chr):
             if args.h2 is not None and args.rg is not None:
@@ -695,8 +684,7 @@ if __name__ == '__main__':
 
             if not args.overlap_annot or args.not_M_5_50:
                 if args.frqfile is not None or args.frqfile_chr is not None:
-                    with Logger3(args.out+'.log') as logger:
-                        logger.log('The frequency file is unnecessary and is being ignored.')
+                    logger.warning('The frequency file is unnecessary and is being ignored.')
                     args.frqfile = None
                     args.frqfile_chr = None
             if args.overlap_annot and not args.not_M_5_50:
@@ -704,11 +692,11 @@ if __name__ == '__main__':
                     raise ValueError('Must set either --frqfile and --ref-ld or --frqfile-chr and --ref-ld-chr')
 
             if args.rg:
-                sumstats.estimate_rg(args, log)
+                sumstats.estimate_rg(args)
             elif args.h2:
-                sumstats.estimate_h2(args, log)
+                sumstats.estimate_h2(args)
             elif args.h2_cts:
-                sumstats.cell_type_specific(args, log)
+                sumstats.cell_type_specific(args)
 
             # bad flags
         else:
@@ -717,11 +705,9 @@ if __name__ == '__main__':
             print('ldsc.py -h describes options.')
     except Exception:
         #ex_type, ex, tb = sys.exc_info()
-        #log.log( traceback.format_exc(ex) )
+        #logger.info( traceback.format_exc(ex) )
         raise
     finally:
-        with Logger3(args.out+'.log') as logger:
-            logger.log(('Analysis finished at {T}'.format(T=time.ctime()) )
+        logger.info('Analysis finished at {T}'.format(T=time.ctime()) )
         time_elapsed = round(time.time()-start_time,2)
-        with Logger3(args.out+'.log') as logger:
-            logger.log(('Total time elapsed: {T}'.format(T=sec_to_str(time_elapsed)))
+        logger.info('Total time elapsed: {T}'.format(T=sec_to_str(time_elapsed)))
