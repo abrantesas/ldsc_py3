@@ -127,7 +127,7 @@ class __GenotypeArrayInMemory__(object):
         func = lambda x: np.square(x)
         snp_getter = self.nextSNPs
         return self.__corSumBlockJackknife__(block_left, c, func, snp_getter, annot, jN)
-
+    #1.24s
     def __l2_unbiased__(self, x, n):
         denom = n-2 if n > 2 else n  # allow n<2 for testing purposes
         sq = np.square(x)
@@ -208,6 +208,7 @@ class __GenotypeArrayInMemory__(object):
                 # block_size can't increase more than c
                 # block_size can't be less than c unless it is zero
                 # both of these things make sense
+                #3.44s
                 A = np.hstack((A[:, old_b-b+c:old_b], B))
                 l_A += old_b-b+c
             elif l_B == b0 and b > 0:
@@ -393,6 +394,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         n = self.n
         nru = self.nru
         slice = self.geno[2*c*nru:2*(c+b)*nru]
+        #1.83s
         X = np.array(slice.decode(self._bedcode), dtype="float64").reshape((b, nru)).T
         X = X[0:n, :]
         Y = np.zeros(X.shape)
@@ -401,6 +403,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
             ii = newsnp != 9
             avg = np.mean(newsnp[ii])
             newsnp[np.logical_not(ii)] = avg
+            #2.41s
             denom = np.std(newsnp)
             if denom == 0:
                 denom = 1

@@ -625,7 +625,7 @@ if __name__ == '__main__':
     #log = Logger(args.out+'.log')
     logger = logging.getLogger('LDSC')
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler(args.out + 'LDSC.log')
+    fh = logging.FileHandler(args.out + '_LDSC.log')
     fh.setLevel(logging.DEBUG)
 
     ch = logging.StreamHandler()
