@@ -1,4 +1,4 @@
-name: py3
+name: ldsc_py3
 channels:
 - bioconda
 dependencies:
