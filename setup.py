@@ -13,6 +13,7 @@ setup(name='ldsc',
             'bitarray>=2.5,<2.6',
             'scipy>=1.11,<1.12',
             'numpy>=1.24,<1.25',
-            'pandas>=2.0,<2.1'
+            'pandas>=2.0,<2.1',
+            'numba>=0.57,<0.58'
       ]
 )

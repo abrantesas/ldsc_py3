@@ -1,4 +1,4 @@
-name: ldsc_py3
+name: ldsc_py3n
 channels:
 - bioconda
 dependencies:
@@ -9,3 +9,4 @@ dependencies:
   - scipy==1.11
   - pandas==2.0
   - numpy==1.24
+  - numba==0.57
