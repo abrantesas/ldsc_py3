@@ -2,6 +2,23 @@ import numpy as np
 import bitarray as ba
 
 
+from numba import jit
+
+"""
+functions to speed up with numba
+"""
+@jit
+def fast_square(x):
+    return np.square(x)
+
+@jit
+def fast_hstack(A,B,old_b,b,c):
+    return np.hstack((A[:, old_b-b+c:old_b], B))
+
+@jit 
+def fast_std(newsnp):
+    return np.std(newsnp)
+
 def getBlockLefts(coords, max_dist):
     '''
     Converts coordinates + max block length to the a list of coordinates of the leftmost
@@ -124,13 +141,13 @@ class __GenotypeArrayInMemory__(object):
         return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
 
     def ldScoreBlockJackknife(self, block_left, c, annot=None, jN=10):
-        func = lambda x: np.square(x)
+        func = lambda x: fast_square(x)
         snp_getter = self.nextSNPs
         return self.__corSumBlockJackknife__(block_left, c, func, snp_getter, annot, jN)
     #1.24s
     def __l2_unbiased__(self, x, n):
         denom = n-2 if n > 2 else n  # allow n<2 for testing purposes
-        sq = np.square(x)
+        sq = fast_square(x)
         return sq - (1-sq) / denom
 
     # general methods for calculating sums of Pearson correlation coefficients
@@ -209,7 +226,7 @@ class __GenotypeArrayInMemory__(object):
                 # block_size can't be less than c unless it is zero
                 # both of these things make sense
                 #3.44s
-                A = np.hstack((A[:, old_b-b+c:old_b], B))
+                A = fast_hstack(A,B,old_b,b,c)
                 l_A += old_b-b+c
             elif l_B == b0 and b > 0:
                 A = A[:, b0-b:b0]
@@ -404,7 +421,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
             avg = np.mean(newsnp[ii])
             newsnp[np.logical_not(ii)] = avg
             #2.41s
-            denom = np.std(newsnp)
+            denom = fast_std(newsnp)
             if denom == 0:
                 denom = 1
 

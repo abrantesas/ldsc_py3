@@ -88,22 +88,6 @@ def _remove_dtype(x):
 #         #print(msg, file=self.log_fh)
 #         print(msg)
 
-# class Logger3(object):
-#     def __init__(self, fh):
-#         self.file_handle = fh
-
-#     def __enter__(self):
-#         self.log_fh = open(self.file_handle, 'a', encoding='utf-8')  # Open the file
-#         return self
-
-#     def log(self, msg):
-#         print(msg, file=self.log_fh)
-#         print(msg)
-
-#     def __exit__(self, exc_type, exc_value, traceback):
-#         self.log_fh.close()  # Close the file when exiting the 'with' block
-        
-
 def __filter__(fname, noun, verb, merge_obj):
     merged_list = None
     if fname:
