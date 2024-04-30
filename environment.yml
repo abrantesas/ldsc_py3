@@ -3,7 +3,7 @@ channels:
 - bioconda
 dependencies:
 - python=3.11
-- bitarray=2.5
+- bitarray=2.9
 - pip
 - pip:
   - scipy==1.11
