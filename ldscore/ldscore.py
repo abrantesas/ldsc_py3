@@ -7,15 +7,15 @@ from numba import jit
 """
 functions to speed up with numba
 """
-@jit
+@jit(nopython=True)
 def fast_square(x):
     return np.square(x)
 
-@jit
+@jit(nopython=True)
 def fast_hstack(A,B,old_b,b,c):
     return np.hstack((A[:, old_b-b+c:old_b], B))
 
-@jit 
+@jit(nopython=True)
 def fast_std(newsnp):
     return np.std(newsnp)
 
