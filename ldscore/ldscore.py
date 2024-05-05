@@ -19,6 +19,10 @@ def fast_hstack(A,B,old_b,b,c):
 def fast_std(newsnp):
     return np.std(newsnp)
 
+@jit(nopython=True)
+def fast_reshape_transpose(X,b,nru):
+    return X.reshape((b,nru)).T
+
 def getBlockLefts(coords, max_dist):
     '''
     Converts coordinates + max block length to the a list of coordinates of the leftmost
@@ -412,7 +416,8 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         nru = self.nru
         slice = self.geno[2*c*nru:2*(c+b)*nru]
         #1.83s
-        X = np.array(slice.decode(self._bedcode), dtype="float64").reshape((b, nru)).T
+        X = np.array(slice.decode(self._bedcode), dtype="float64")#.reshape((b, nru)).T
+        X = fast_reshape_transpose(X,b,nru) ###speed up reshape with numba 
         X = X[0:n, :]
         Y = np.zeros(X.shape)
         for j in range(0, b):
