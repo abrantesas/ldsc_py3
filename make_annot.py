@@ -3,25 +3,27 @@ from __future__ import print_function
 import pandas as pd
 import numpy as np
 import argparse
-from pybedtools import BedTool
+import pyranges as pr
 import gzip
 
 def gene_set_to_bed(args):
-    print('making gene set bed file')
     GeneSet = pd.read_csv(args.gene_set_file, header = None, names = ['GENE'])
-    all_genes = pd.read_csv(args.gene_coord_file, delim_whitespace = True)
+    all_genes = pd.read_csv(args.gene_coord_file, sep='\s+')
     df = pd.merge(GeneSet, all_genes, on = 'GENE', how = 'inner')
     df['START'] = np.maximum(1, df['START'] - args.windowsize)
     df['END'] = df['END'] + args.windowsize
     iter_df = [['chr'+(str(x1).lstrip('chr')), x2 - 1, x3] for (x1,x2,x3) in np.array(df[['CHR', 'START', 'END']])]
-    return BedTool(iter_df).sort().merge()
-
+    iter_df.columns = ['Chromosome', 'Start', 'End']
+    iter_df.dtypes
+    bed_for_annot=pr.PyRanges(iter_df).sort().merge()
+    return bed_for_annot
+    
 def make_annot_files(args, bed_for_annot):
-    print('making annot file')
     df_bim = pd.read_csv(args.bimfile,
-            delim_whitespace=True, usecols = [0,1,2,3], names = ['CHR','SNP','CM','BP'])
-    iter_bim = [['chr'+str(x1), x2 - 1, x2] for (x1, x2) in np.array(df_bim[['CHR', 'BP']])]
-    bimbed = BedTool(iter_bim)
+            sep='\s+', usecols = [0,1,2,3], names = ['CHR','SNP','CM','BP'])
+    iter_bim = pd.DataFrame([['chr'+str(x1), x2 - 1, x2] for (x1, x2) in np.array(df_bim[['CHR', 'BP']])])
+    iter_bim.columns = ['Chromosome', 'Start', 'End']
+    bimbed = pr.PyRanges(iter_bim)
     annotbed = bimbed.intersect(bed_for_annot)
     bp = [x.start + 1 for x in annotbed]
     df_int = pd.DataFrame({'BP': bp, 'ANNOT':1})
@@ -49,7 +51,7 @@ if __name__ == '__main__':
     if args.gene_set_file is not None:
         bed_for_annot = gene_set_to_bed(args)
     else:
-        bed_for_annot = BedTool(args.bed_file).sort()
+        bed_for_annot = pr.Pyranges(args.bed_file).sort()
         if not args.nomerge:
             bed_for_annot = bed_for_annot.merge()
 
