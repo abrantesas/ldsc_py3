@@ -2,7 +2,7 @@ name: ldsc_py3pr
 channels:
 - bioconda
 dependencies:
-- python=3.11
+- python=3.10
 - bitarray=2.9
 - pip
 - pip:
