@@ -10,12 +10,12 @@ def gene_set_to_bed(args):
     GeneSet = pd.read_csv(args.gene_set_file, header = None, names = ['GENE'])
     all_genes = pd.read_csv(args.gene_coord_file, sep='\s+')
     df = pd.merge(GeneSet, all_genes, on = 'GENE', how = 'inner')
-    df['START'] = np.maximum(1, df['START'] - args.windowsize)
+    df['START'] = np.maximum(1, df['START'] - args.windowsize) - 1
     df['END'] = df['END'] + args.windowsize
-    iter_df = [['chr'+(str(x1).lstrip('chr')), x2 - 1, x3] for (x1,x2,x3) in np.array(df[['CHR', 'START', 'END']])]
-    iter_df.columns = ['Chromosome', 'Start', 'End']
-    iter_df.dtypes
-    bed_for_annot=pr.PyRanges(iter_df).sort().merge()
+    #iter_df = [['chr'+(str(x1).lstrip('chr')), x2 - 1, x3] for (x1,x2,x3) in np.array(df[['CHR', 'START', 'END']])]
+    df.drop(columns=['GENE'])
+    df.columns = ['Chromosome', 'Start', 'End']
+    bed_for_annot=pr.PyRanges(df).sort().merge()
     return bed_for_annot
     
 def make_annot_files(args, bed_for_annot):
