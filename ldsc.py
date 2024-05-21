@@ -372,9 +372,9 @@ def ldscore(args):
     df.drop(['CM','MAF'], axis=1).to_csv(out_fname, sep="\t", header=True, index=False,
         float_format='%.3f')
     #following change works with gzip not in path or not installed
-    #call(['gzip', '-f', out_fname])
-    with open(out_fname, 'rb') as f_in, gzip.open(out_fname+'.gz', 'wb') as f_out:
-        f_out.writelines(f_in)
+    call(['gzip', '-f', out_fname])
+    #with open(out_fname, 'rb') as f_in, gzip.open(out_fname+'.gz', 'wb') as f_out:
+    #    f_out.writelines(f_in)
         
     if annot_matrix is not None:
         M = np.atleast_1d(np.squeeze(np.asarray(np.sum(annot_matrix, axis=0))))
@@ -413,6 +413,7 @@ def ldscore(args):
         del annot_df['MAF']
         logger.info("Writing annot matrix produced by --cts-bin to {F}".format(F=out_fname+'.gz'))
         annot_df.to_csv(out_fname_annot, sep="\t", header=True, index=False)
+        ##below was never changed to python gzip
         call(['gzip', '-f', out_fname_annot])
 
     # print LD Score summary
