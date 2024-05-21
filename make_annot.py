@@ -14,7 +14,7 @@ def gene_set_to_bed(args):
     df['END'] = df['END'] + args.windowsize
     #iter_df = [['chr'+(str(x1).lstrip('chr')), x2 - 1, x3] for (x1,x2,x3) in np.array(df[['CHR', 'START', 'END']])]
     df.drop(columns=['GENE'],inplace=True)
-    df.columns = ['chromosomes', 'starts', 'ends']
+    df.columns = ['Chromosome', 'Start', 'End']
     bed_for_annot=pr.PyRanges(df).sort().merge().df
     return bed_for_annot
     
@@ -22,7 +22,7 @@ def make_annot_files(args, bed_for_annot):
     df_bim = pd.read_csv(args.bimfile,
             sep='\s+', usecols = [0,1,2,3], names = ['CHR','SNP','CM','BP'])
     iter_bim = pd.DataFrame([['chr'+str(x1), x2 - 1, x2] for (x1, x2) in np.array(df_bim[['CHR', 'BP']])])
-    iter_bim.columns = ['chromosomes', 'starts', 'ends']
+    iter_bim.columns = ['Chromosome', 'Start', 'End']
     bimbed = pr.PyRanges(iter_bim)
     annotbed = bimbed.intersect(bed_for_annot)
     bp = [x + 1 for x in annotbed.Start]
