@@ -18,7 +18,7 @@ from subprocess import call
 from itertools import product
 import time, sys, traceback, argparse
 from functools import reduce
-import gzip
+#import gzip
 import logging
 
 try:
