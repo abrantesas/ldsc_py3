@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import pandas as pd
 import numpy as np
 import argparse
-from pybedtools import BedTool
 import gzip
 
 def gene_set_to_bed(args):
