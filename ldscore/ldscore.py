@@ -7,21 +7,40 @@ from numba import jit
 """
 functions to speed up with numba
 """
-@jit(nopython=True)
-def fast_square(x):
-    return np.square(x)
+#@jit(nopython=True)
+#def fast_square(x):
+#    return np.square(x)
+
+#@jit(nopython=True)
+#def fast_hstack(A,B,old_b,b,c):
+#    return np.hstack((A[:, old_b-b+c:old_b], B))
+
+#@jit(nopython=True)
+#def fast_std(newsnp):
+#    return np.std(newsnp)
+
+#@jit(nopython=True)
+#def fast_reshape_transpose(X,b,nru):
+#    return X.reshape((b,nru)).T
 
 @jit(nopython=True)
-def fast_hstack(A,B,old_b,b,c):
-    return np.hstack((A[:, old_b-b+c:old_b], B))
+def fast_std_reshape_transpose(X,b,nru,n,fr,c,minorRef):
+    X = X.reshape((b,nru)).T ###speed up reshape with numba 
+    X = X[0:n, :]
+    Y = np.zeros(X.shape)
+    for j in range(0, b):
+        newsnp = X[:, j]
+        ii = newsnp != 9
+        avg = np.mean(newsnp[ii])
+        newsnp[np.logical_not(ii)] = avg
+        denom = np.std(newsnp)
+        if denom == 0:
+            denom = 1
+        if minorRef is not None and fr[c + j] > 0.5:
+            denom = denom*-1
 
-@jit(nopython=True)
-def fast_std(newsnp):
-    return np.std(newsnp)
-
-@jit(nopython=True)
-def fast_reshape_transpose(X,b,nru):
-    return X.reshape((b,nru)).T
+        Y[:, j] = (newsnp - avg) / denom
+    return Y
 
 def getBlockLefts(coords, max_dist):
     '''
@@ -145,13 +164,13 @@ class __GenotypeArrayInMemory__(object):
         return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
 
     def ldScoreBlockJackknife(self, block_left, c, annot=None, jN=10):
-        func = lambda x: fast_square(x)
+        func = lambda x: np.square(x)
         snp_getter = self.nextSNPs
         return self.__corSumBlockJackknife__(block_left, c, func, snp_getter, annot, jN)
     #1.24s
     def __l2_unbiased__(self, x, n):
         denom = n-2 if n > 2 else n  # allow n<2 for testing purposes
-        sq = fast_square(x)
+        sq = np.square(x)
         return sq - (1-sq) / denom
 
     # general methods for calculating sums of Pearson correlation coefficients
@@ -230,7 +249,7 @@ class __GenotypeArrayInMemory__(object):
                 # block_size can't be less than c unless it is zero
                 # both of these things make sense
                 #3.44s
-                A = fast_hstack(A,B,old_b,b,c)
+                A = np.hstack((A[:, old_b-b+c:old_b], B))
                 l_A += old_b-b+c
             elif l_B == b0 and b > 0:
                 A = A[:, b0-b:b0]
@@ -414,26 +433,11 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         c = self._currentSNP
         n = self.n
         nru = self.nru
-        slice = self.geno[2*c*nru:2*(c+b)*nru]
+        slicesnp = self.geno[2*c*nru:2*(c+b)*nru]
+        fr = self.freq
         #1.83s
-        X = np.array(slice.decode(self._bedcode), dtype="float64")#.reshape((b, nru)).T
-        X = fast_reshape_transpose(X,b,nru) ###speed up reshape with numba 
-        X = X[0:n, :]
-        Y = np.zeros(X.shape)
-        for j in range(0, b):
-            newsnp = X[:, j]
-            ii = newsnp != 9
-            avg = np.mean(newsnp[ii])
-            newsnp[np.logical_not(ii)] = avg
-            #2.41s
-            denom = fast_std(newsnp)
-            if denom == 0:
-                denom = 1
-
-            if minorRef is not None and self.freq[self._currentSNP + j] > 0.5:
-                denom = denom*-1
-
-            Y[:, j] = (newsnp - avg) / denom
+        X = np.array(slicesnp.decode(self._bedcode), dtype="float64")#.reshape((b, nru)).T
+        Y = fast_std_reshape_transpose(X,b,nru,n,fr,c,minorRef)
 
         self._currentSNP += b
         return Y
